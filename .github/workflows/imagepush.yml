@@ -1,0 +1,66 @@
+name: Publish Docker image
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  docker:
+#    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prep for scratch docker images
+        run: |
+          export PROJECT_NAME="`echo $GITHUB_REPOSITORY | cut -d "/" -f 2`"
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+
+          export TAG=`curl -s https://api.github.com/repos/DRuggeri/$PROJECT_NAME/releases/latest | jq -r '.tag_name'`
+
+          echo "
+          FROM golang:1.17.0-alpine3.14 AS builder
+          RUN apk --no-cache add git
+          RUN go install github.com/DRuggeri/alertmanager_gotify_bridge@$TAG
+
+          FROM scratch
+          COPY --from=builder /go/bin/alertmanager_gotify_bridge /alertmanager_gotify_bridge
+          ENTRYPOINT [\"/alertmanager_gotify_bridge\"]
+          " > Dockerfile
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            druggeri/${{ env.PROJECT_NAME }}
+            ghcr.io/${{ github.repository }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
