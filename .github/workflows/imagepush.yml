@@ -39,10 +39,8 @@ jobs:
 
       - name: Prep for scratch docker images
         run: |
-          echo "PWD: $PWD"
-          find ../
-          export PROJECT_NAME="`echo $GITHUB_REPOSITORY | cut -d "/" -f 2`"
-          export TAG=`curl -s https://api.github.com/repos/DRuggeri/$PROJECT_NAME/releases/latest | jq -r '.tag_name'`
+          export PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+          export TAG=${GITHUB_REF##*/}
 
           echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
           echo "TAG=$TAG" >> $GITHUB_ENV
@@ -50,10 +48,10 @@ jobs:
           echo "
           FROM golang:1.17.0-alpine3.14 AS builder
           RUN apk --no-cache add git
-          RUN go install github.com/DRuggeri/alertmanager_gotify_bridge@$TAG
+          RUN go install github.com/DRuggeri/$PROJECT_NAME@$TAG
 
           FROM scratch
-          COPY --from=builder /go/bin/alertmanager_gotify_bridge /alertmanager_gotify_bridge
+          COPY --from=builder /go/bin/$PROJECT_NAME /$PROJECT_NAME
           ENTRYPOINT [\"/alertmanager_gotify_bridge\"]
           " > Dockerfile
 
