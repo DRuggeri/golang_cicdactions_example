@@ -5,6 +5,7 @@ on:
 
 jobs:
   test:
+    name: Test
     strategy:
       matrix:
         go-version:
@@ -30,6 +31,7 @@ jobs:
 
   release:
     needs: test
+    name: Build and release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -52,27 +54,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  docker:
+  containers:
     needs: release
+    name: Push containers
     runs-on: ubuntu-latest
     steps:
-      - name: Prep for scratch docker images
-        run: |
-          export PROJECT_NAME="`echo $GITHUB_REPOSITORY | cut -d "/" -f 2`"
-          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
-
-          export TAG=`curl -s https://api.github.com/repos/DRuggeri/$PROJECT_NAME/releases/latest | jq -r '.tag_name'`
-
-          echo "
-          FROM golang:1.17.0-alpine3.14 AS builder
-          RUN apk --no-cache add git
-          RUN go install github.com/DRuggeri/alertmanager_gotify_bridge@$TAG
-
-          FROM scratch
-          COPY --from=builder /go/bin/alertmanager_gotify_bridge /alertmanager_gotify_bridge
-          ENTRYPOINT [\"/alertmanager_gotify_bridge\"]
-          " > Dockerfile
-
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -80,7 +66,7 @@ jobs:
         uses: docker/setup-qemu-action@v1
 
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -97,16 +83,35 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v3
         with:
           images: |
             druggeri/${{ env.PROJECT_NAME }}
             ghcr.io/${{ github.repository }}
 
+      - name: Prep for scratch docker images
+        run: |
+          export PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+          export TAG=${GITHUB_REF##*/}
+
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+          echo "
+          FROM golang:1.17.0-alpine3.14 AS builder
+          RUN apk --no-cache add git
+          RUN go install github.com/DRuggeri/$PROJECT_NAME@$TAG
+
+          FROM scratch
+          COPY --from=builder /go/bin/$PROJECT_NAME /$PROJECT_NAME
+          ENTRYPOINT [\"/alertmanager_gotify_bridge\"]
+          " > Dockerfile
+
       - name: Build and push Docker images
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        uses: docker/build-push-action@v2
         with:
-          context: .
+          context: ${{ env.working-directory }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
