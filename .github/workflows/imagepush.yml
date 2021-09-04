@@ -55,7 +55,7 @@ jobs:
           FROM scratch
           COPY --from=builder /go/bin/alertmanager_gotify_bridge /alertmanager_gotify_bridge
           ENTRYPOINT [\"/alertmanager_gotify_bridge\"]
-          " > $PROJECT_NAME/Dockerfile
+          " > Dockerfile
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v2
