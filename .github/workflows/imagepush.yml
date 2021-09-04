@@ -9,24 +9,6 @@ jobs:
     env:
       working-directory: ./build
     steps:
-      - name: Prep for scratch docker images
-        working-directory: ${{ env.working-directory }}
-        run: |
-          export PROJECT_NAME="`echo $GITHUB_REPOSITORY | cut -d "/" -f 2`"
-          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
-
-          export TAG=`curl -s https://api.github.com/repos/DRuggeri/$PROJECT_NAME/releases/latest | jq -r '.tag_name'`
-
-          echo "
-          FROM golang:1.17.0-alpine3.14 AS builder
-          RUN apk --no-cache add git
-          RUN go install github.com/DRuggeri/alertmanager_gotify_bridge@$TAG
-
-          FROM scratch
-          COPY --from=builder /go/bin/alertmanager_gotify_bridge /alertmanager_gotify_bridge
-          ENTRYPOINT [\"/alertmanager_gotify_bridge\"]
-          " > Dockerfile
-
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -47,11 +29,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Checkout code
-        working-directory: ${{ env.working-directory }}
         uses: actions/checkout@v2
+        path: ${{ env.working-directory }}
 
       - name: Extract metadata (tags, labels) for Docker
-        working-directory: ${{ env.working-directory }}
         id: meta
         uses: docker/metadata-action@v3
         with:
@@ -59,11 +40,30 @@ jobs:
             druggeri/${{ env.PROJECT_NAME }}
             ghcr.io/${{ github.repository }}
 
+      - name: Prep for scratch docker images
+        working-directory: ${{ env.working-directory }}
+        run: |
+          export PROJECT_NAME="`echo $GITHUB_REPOSITORY | cut -d "/" -f 2`"
+          export TAG=`curl -s https://api.github.com/repos/DRuggeri/$PROJECT_NAME/releases/latest | jq -r '.tag_name'`
+
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+          echo "
+          FROM golang:1.17.0-alpine3.14 AS builder
+          RUN apk --no-cache add git
+          RUN go install github.com/DRuggeri/alertmanager_gotify_bridge@$TAG
+
+          FROM scratch
+          COPY --from=builder /go/bin/alertmanager_gotify_bridge /alertmanager_gotify_bridge
+          ENTRYPOINT [\"/alertmanager_gotify_bridge\"]
+          " > Dockerfile
+
       - name: Build and push Docker images
         working-directory: ${{ env.working-directory }}
         uses: docker/build-push-action@v2
         with:
-          context: /builddir
+          context: ${{ env.working-directory }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
