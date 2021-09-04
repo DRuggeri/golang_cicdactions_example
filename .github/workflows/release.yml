@@ -70,6 +70,8 @@ jobs:
 
           echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
           echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "URL_LINUX_AMD64=https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG/${PROJECT_NAME}-${TAG}-linux-amd64" >> $GITHUB_ENV
+          echo "URL_LINUX_ARM64=https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG/${PROJECT_NAME}-${TAG}-linux-arm64" >> $GITHUB_ENV
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -110,11 +112,12 @@ jobs:
         run: |
           echo "
           FROM golang:1.17.0-alpine3.14 AS builder
-          RUN apk --no-cache add git
-          RUN go install github.com/${{ github.repository }}@$TAG
+          RUN apk --no-cache add wget 
+          RUN if uname -m | grep 'x86_64' >/dev/null 2>&1; then wget -O /downloaded_file $URL_LINUX_AMD64;fi \
+           && if uname -m | grep 'arm' >/dev/null 2>&1; then wget -O /downloaded_file $URL_LINUX_ARM64;fi
 
           FROM scratch
-          COPY --from=builder /go/bin/$PROJECT_NAME /$PROJECT_NAME
+          COPY --from=builder /downloaded_file /$PROJECT_NAME
           ENTRYPOINT [\"/$PROJECT_NAME\"]
           " > Dockerfile
 
