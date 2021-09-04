@@ -13,6 +13,7 @@ jobs:
           echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
 
           export TAG=`curl -s https://api.github.com/repos/DRuggeri/$PROJECT_NAME/releases/latest | jq -r '.tag_name'`
+          mkdir /builddir
 
           echo "
           FROM golang:1.17.0-alpine3.14 AS builder
@@ -22,7 +23,7 @@ jobs:
           FROM scratch
           COPY --from=builder /go/bin/alertmanager_gotify_bridge /alertmanager_gotify_bridge
           ENTRYPOINT [\"/alertmanager_gotify_bridge\"]
-          " > Dockerfile
+          " > /builddir/Dockerfile
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -57,7 +58,7 @@ jobs:
       - name: Build and push Docker images
         uses: docker/build-push-action@v2
         with:
-          context: .
+          context: /builddir
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
