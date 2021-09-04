@@ -3,6 +3,9 @@ on:
   - push
   - pull_request
 
+env:
+  DOCKERHUB_USERNAME: druggeri
+
 jobs:
   test:
     name: Test
@@ -85,7 +88,7 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Checkout code
@@ -96,7 +99,7 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.PROJECT_NAME }}
+            ${{ env.DOCKERHUB_USERNAME }}/${{ env.PROJECT_NAME }}
             ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
@@ -116,10 +119,13 @@ jobs:
           ENTRYPOINT [\"/$PROJECT_NAME\"]
           " > Dockerfile
 
+          echo "Rendered Dockerfile in $PWD:"
+          cat Dockerfile
+
       - name: Build and push Docker images
         uses: docker/build-push-action@v2
         with:
-          context: ${{ env.working-directory }}
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
