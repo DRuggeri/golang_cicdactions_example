@@ -40,8 +40,8 @@ jobs:
             ghcr.io/${{ github.repository }}
 
       - name: Prep for scratch docker images
-        working-directory: ${{ env.working-directory }}
         run: |
+          find ../
           export PROJECT_NAME="`echo $GITHUB_REPOSITORY | cut -d "/" -f 2`"
           export TAG=`curl -s https://api.github.com/repos/DRuggeri/$PROJECT_NAME/releases/latest | jq -r '.tag_name'`
 
