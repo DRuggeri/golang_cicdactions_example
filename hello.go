@@ -1,11 +1,18 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
 
-func Hello() string {
-    return "Hello, world"
-}
+	"gopkg.in/alecthomas/kingpin.v2"
+)
+
+var Version = "testing"
+var Commit = "local"
 
 func main() {
-    fmt.Println(Hello())
+	kingpin.Version(Version)
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
+
+	fmt.Printf("Hello from '%s' '%s'\n", Version, Commit)
 }

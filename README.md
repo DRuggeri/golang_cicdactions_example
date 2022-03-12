@@ -1,5 +1,17 @@
 This repository details a morning of learning and messing with GitHub actions, golang, and Docker. Coming from a Concourse CI background, many Actions behaviors were similar... but some where foreign.
 
+Features:
+* Build/test on PR and release on tag
+* Sets version and commit info based on tag, defaults to 'testing' version and 'local' commit unless run from Github Action
+* Uses goreleaser to create/upload releases
+  * Cross compiles many OS/arch combinations
+  * Populates release notes with `.release_info.md` file
+* Builds scratch-based Docker container with the binary ONLY
+* Helper script (`scripts/do_release.sh`) to tag by just incrementing 'major', 'minor', and 'patch'
+
+Dependencies:
+* To push to Docker Hub, set `DOCKERHUB_TOKEN` and `DOCKERHUB_USERNAME` repository secrets
+
 I've learned a few things in building the workflow file.
 - Build/Test a go project
   - Using the available setup-go action was simple and permits easily running your test suite across multiple versions and OSs
@@ -11,7 +23,6 @@ I've learned a few things in building the workflow file.
 - Push to the Docker registry
   - This was the most difficult part... the Docker and GitHub action doco leaves a bit to be desired
   - To push to GHCR and Docker, you will need to set the image names manually if your ID on the two systems differ
-  - Tip: You **CAN NOT** use a secret for DOCKERHUB_USERNAME. It will get masked by GitHub Actions and eaten along the pipeline. Sign of the problem: `failed with: error: invalid tag "***/:v0.0.4": invalid reference format`. In this case, druggeri (my DockerHub ID) was masked.
   - Tip: Consider generating scratch images since these are golang binaries and have everything they need
   - Note: I intend to reuse this workflow unchanged across my projects - this is why there is a step to dynamically determine the project name early, and referenced afterwards
   - If you care about having nice Docker tags like maj.min, latest, etc... use the metadata Action and only take action when operating on a tag
