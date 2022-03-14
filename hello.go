@@ -16,3 +16,7 @@ func main() {
 
 	fmt.Printf("Hello from '%s' '%s'\n", Version, Commit)
 }
+
+func Hello() string {
+	return fmt.Sprintf("Hello from '%s' '%s'", Version, Commit)
+}
