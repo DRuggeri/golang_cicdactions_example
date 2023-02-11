@@ -112,7 +112,7 @@ jobs:
         run: |
           echo "
           FROM alpine AS builder
-          RUN apk --no-cache add wget \
+          RUN apk --no-cache add wget ca-certificates \
            && if uname -m | grep 'x86_64' >/dev/null 2>&1; then wget -O /downloaded_file $URL_LINUX_AMD64;fi \
            && if uname -m | grep 'aarch64' >/dev/null 2>&1; then wget -O /downloaded_file $URL_LINUX_ARM64;fi \
            && if uname -m | grep 'arm' >/dev/null 2>&1; then wget -O /downloaded_file $URL_LINUX_ARM;fi \
@@ -120,6 +120,7 @@ jobs:
            && chmod 755 /downloaded_file
 
           FROM scratch
+          COPY --from=builder /etc/ssl/certs/ /etc/ssl/certs/
           COPY --from=builder /downloaded_file /$PROJECT_NAME
           ENTRYPOINT [\"/$PROJECT_NAME\"]
           " > Dockerfile
