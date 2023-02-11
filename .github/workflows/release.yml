@@ -120,7 +120,7 @@ jobs:
            && chmod 755 /downloaded_file
 
           FROM scratch
-          COPY --from=builder /etc/ssl/certs/ /etc/ssl/certs/
+          COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
           COPY --from=builder /downloaded_file /$PROJECT_NAME
           ENTRYPOINT [\"/$PROJECT_NAME\"]
           " > Dockerfile
