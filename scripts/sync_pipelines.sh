@@ -21,11 +21,19 @@ for FILENAME in ${FILENAMES[@]};do
 
   #Locate and destroy!
   for target in `ls ../*/$FILENAME | grep -v golang_cicdactions_example`;do
-    if ! cmp -s "$FILENAME" "$target";then
+    SRC=$FILENAME
+
+    #Allow yaml files to have overrides spliced in with spruce
+    if [[ $target == *.yml && -f "$target.overrides" ]]; then
+      spruce merge "$FILENAME" "$target.overrides" > /tmp/merged.yml
+      SRC=/tmp/merged.yml
+    fi
+
+    if ! cmp -s "$SRC" "$target";then
       BASE_DIR=$(echo $target | cut -d "/" -f 2)
       printf "${GREEN}Replacing $target in $BASE_DIR${NC}\n"
 
-      cp "$FILENAME" "$target"
+      cp "$SRC" "$target"
       cd "../$BASE_DIR"
       if ! git ls-files --error-unmatch $FILENAME >/dev/null 2>&1;then
         printf "${GREEN}  Adding to git...${NC}"
