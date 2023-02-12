@@ -59,7 +59,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --release-notes=.release_info.md
+          args: release --clean --parallelism=2 --timeout=1h --release-notes=.release_info.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
