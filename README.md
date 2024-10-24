@@ -26,3 +26,4 @@ I've learned a few things in building the workflow file.
   - Tip: Consider generating scratch images since these are golang binaries and have everything they need
   - Note: I intend to reuse this workflow unchanged across my projects - this is why there is a step to dynamically determine the project name early, and referenced afterwards
   - If you care about having nice Docker tags like maj.min, latest, etc... use the metadata Action and only take action when operating on a tag
+
