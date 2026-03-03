@@ -1,3 +1,5 @@
+# Common workflow for DRuggeri's repos
+
 name: Release
 on:
   - push
@@ -120,8 +122,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
 
-      - name: Create scratch docker image
+      - name: Create Dockerfile if missing
         run: |
+          test -f Dockerfile && exit 0
+
           echo "
           FROM alpine AS builder
           RUN apk --no-cache add wget ca-certificates \
